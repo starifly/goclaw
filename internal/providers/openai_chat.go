@@ -50,12 +50,33 @@ func (p *OpenAIProvider) chatRequestFn(ctx context.Context, body map[string]any)
 		}
 		defer respBody.Close()
 
+		raw, err := io.ReadAll(respBody)
+		if err != nil {
+			return nil, fmt.Errorf("%s: read response: %w", p.name, err)
+		}
+
 		var oaiResp openAIResponse
-		if err := json.NewDecoder(respBody).Decode(&oaiResp); err != nil {
+		if err := json.Unmarshal(raw, &oaiResp); err != nil {
 			return nil, fmt.Errorf("%s: decode response: %w", p.name, err)
 		}
 
-		return p.parseResponse(&oaiResp), nil
+		result := p.parseResponse(&oaiResp)
+		if result != nil && result.Content == "" && result.Thinking == "" && len(result.ToolCalls) == 0 {
+			preview := string(raw)
+			if len(preview) > 2000 {
+				preview = preview[:2000]
+			}
+			slog.Warn("openai: parsed empty response",
+				"provider", p.name,
+				"model", model,
+				"raw_len", len(raw),
+				"raw_preview", preview,
+				"usage_present", oaiResp.Usage != nil,
+				"choices", len(oaiResp.Choices),
+			)
+		}
+
+		return result, nil
 	}
 }
 
