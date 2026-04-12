@@ -59,7 +59,7 @@ func (s *codexMessageStreamState) recordTextDelta(itemID string, outputIndex, co
 	msg := s.ensureMessage(itemID, "", outputIndex)
 	part := msg.ensurePart(contentIndex)
 	part.text += delta
-	if !shouldEmitCodexPhase(msg.phase) {
+	if !isCodexFinalPhase(msg.phase) {
 		return
 	}
 	msg.flushContiguous(result, onChunk)
@@ -73,7 +73,7 @@ func (s *codexMessageStreamState) recordFinalText(itemID string, outputIndex, co
 	part := msg.ensurePart(contentIndex)
 	prev := part.text
 	part.text = text
-	if !shouldEmitCodexPhase(msg.phase) {
+	if !isCodexFinalPhase(msg.phase) {
 		return
 	}
 	part.reconcileCompleted(prev)
@@ -82,7 +82,7 @@ func (s *codexMessageStreamState) recordFinalText(itemID string, outputIndex, co
 
 func (s *codexMessageStreamState) flushMessage(itemID string, result *ChatResponse, onChunk func(StreamChunk)) {
 	msg, ok := s.messages[itemID]
-	if !ok || !shouldEmitCodexPhase(msg.phase) {
+	if !ok || !isCodexFinalPhase(msg.phase) {
 		return
 	}
 	msg.flushContiguous(result, onChunk)
@@ -122,28 +122,43 @@ func (s *codexMessageStreamState) updateResultPhase(result *ChatResponse) {
 
 // preferredMessages returns messages ordered by outputIndex, preferring
 // final_answer phase. Falls back to non-commentary messages if no
-// final_answer is found.
+// final_answer is found, and finally commentary if that is all we have.
 func (s *codexMessageStreamState) preferredMessages() []*codexMessageState {
 	if len(s.messages) == 0 {
 		return nil
 	}
-	ordered := make([]*codexMessageState, 0, len(s.messages))
-	for _, msg := range s.messages {
-		if msg.phase == "final_answer" {
-			ordered = append(ordered, msg)
-		}
-	}
-	if len(ordered) == 0 {
+
+	collect := func(match func(*codexMessageState) bool) []*codexMessageState {
+		ordered := make([]*codexMessageState, 0, len(s.messages))
 		for _, msg := range s.messages {
-			if msg.phase != "commentary" {
+			if msg == nil {
+				continue
+			}
+			if match(msg) {
 				ordered = append(ordered, msg)
 			}
 		}
+		sort.SliceStable(ordered, func(i, j int) bool {
+			return ordered[i].outputIndex < ordered[j].outputIndex
+		})
+		return ordered
 	}
-	sort.SliceStable(ordered, func(i, j int) bool {
-		return ordered[i].outputIndex < ordered[j].outputIndex
+
+	if ordered := collect(func(msg *codexMessageState) bool {
+		return msg.phase == "final_answer"
+	}); len(ordered) > 0 {
+		return ordered
+	}
+
+	if ordered := collect(func(msg *codexMessageState) bool {
+		return !isCodexCommentaryPhase(msg.phase)
+	}); len(ordered) > 0 {
+		return ordered
+	}
+
+	return collect(func(msg *codexMessageState) bool {
+		return isCodexCommentaryPhase(msg.phase)
 	})
-	return ordered
 }
 
 func codexEventItemKey(eventItemID string, item *codexItem) string {
@@ -224,8 +239,12 @@ func (p *codexTextPartState) reconcileCompleted(previous string) {
 	}
 }
 
-func shouldEmitCodexPhase(phase string) bool {
+func isCodexFinalPhase(phase string) bool {
 	return phase == "" || phase == "final_answer"
+}
+
+func isCodexCommentaryPhase(phase string) bool {
+	return phase == "commentary"
 }
 
 func appendCodexContent(result *ChatResponse, text string, onChunk func(StreamChunk)) {
