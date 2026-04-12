@@ -16,7 +16,7 @@ func (p *OpenAIProvider) Chat(ctx context.Context, req ChatRequest) (*ChatRespon
 	body := p.buildRequestBody(model, req, false)
 	body = ApplyMiddlewares(body, p.middlewares, p.middlewareConfig(model, req))
 
-	chatFn := p.chatRequestFn(ctx, body)
+	chatFn := p.chatRequestFn(ctx, body, model)
 
 	resp, err := RetryDo(ctx, p.retryConfig, chatFn)
 
@@ -42,7 +42,7 @@ func (p *OpenAIProvider) Chat(ctx context.Context, req ChatRequest) (*ChatRespon
 
 // chatRequestFn returns a closure that performs a single non-streaming chat request.
 // Shared between initial attempt and post-clamp retry to avoid duplication.
-func (p *OpenAIProvider) chatRequestFn(ctx context.Context, body map[string]any) func() (*ChatResponse, error) {
+func (p *OpenAIProvider) chatRequestFn(ctx context.Context, body map[string]any, model string) func() (*ChatResponse, error) {
 	return func() (*ChatResponse, error) {
 		respBody, err := p.doRequest(ctx, body)
 		if err != nil {
