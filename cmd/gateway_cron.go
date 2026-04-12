@@ -122,6 +122,35 @@ func makeCronJobHandler(sched *scheduler.Scheduler, msgBus *bus.MessageBus, cfg 
 		}
 
 		result := outcome.Result
+		contentPreview := result.Content
+		if len(contentPreview) > 200 {
+			contentPreview = contentPreview[:200]
+		}
+		thinkingPreview := result.Thinking
+		if len(thinkingPreview) > 200 {
+			thinkingPreview = thinkingPreview[:200]
+		}
+		var promptTokens, completionTokens int
+		if result.Usage != nil {
+			promptTokens = result.Usage.PromptTokens
+			completionTokens = result.Usage.CompletionTokens
+		}
+		slog.Warn("cron debug: completed run",
+			"job_id", job.ID,
+			"job_name", job.Name,
+			"agent_id", agentID,
+			"session_key", sessionKey,
+			"content_len", len(result.Content),
+			"content_preview", contentPreview,
+			"thinking_len", len(result.Thinking),
+			"thinking_preview", thinkingPreview,
+			"media_count", len(result.Media),
+			"block_replies", result.BlockReplies,
+			"last_block_reply", result.LastBlockReply,
+			"iterations", result.Iterations,
+			"prompt_tokens", promptTokens,
+			"completion_tokens", completionTokens,
+		)
 
 		// If job wants delivery to a channel, send the agent response to the target chat.
 		if job.Deliver && job.DeliverChannel != "" && job.DeliverTo != "" {

@@ -281,6 +281,35 @@ func (l *Loop) makeCallLLM(req *RunRequest, emitRun func(AgentEvent)) func(ctx c
 			resp, err = provider.Chat(ctx, chatReq)
 		}
 
+		if err == nil && resp != nil {
+			contentPreview := resp.Content
+			if len(contentPreview) > 200 {
+				contentPreview = contentPreview[:200]
+			}
+			thinkingPreview := resp.Thinking
+			if len(thinkingPreview) > 200 {
+				thinkingPreview = thinkingPreview[:200]
+			}
+			providerName := ""
+			if provider != nil {
+				providerName = provider.Name()
+			}
+			slog.Warn("pipeline llm response debug",
+				"run_id", req.RunID,
+				"session_key", req.SessionKey,
+				"stream", req.Stream,
+				"provider", providerName,
+				"model", model,
+				"phase", resp.Phase,
+				"finish_reason", resp.FinishReason,
+				"content_len", len(resp.Content),
+				"content_preview", contentPreview,
+				"thinking_len", len(resp.Thinking),
+				"thinking_preview", thinkingPreview,
+				"tool_calls", len(resp.ToolCalls),
+			)
+		}
+
 		// Non-streaming: emit content events matching v2 behavior (channels need these).
 		if !req.Stream && err == nil && resp != nil {
 			if resp.Thinking != "" {
@@ -402,4 +431,3 @@ func (l *Loop) makeBootstrapCleanup() func(ctx context.Context, state *pipeline.
 		return l.bootstrapCleanup(ctx, l.agentUUID, state.Input.UserID)
 	}
 }
-

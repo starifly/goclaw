@@ -1,6 +1,9 @@
 package pipeline
 
-import "context"
+import (
+	"context"
+	"log/slog"
+)
 
 // ObserveStage runs per iteration after ToolStage. Drains InjectCh,
 // accumulates final content when no tool calls, tracks block replies.
@@ -38,9 +41,26 @@ func (s *ObserveStage) Execute(_ context.Context, state *RunState) error {
 
 	// 3. Accumulate final content when no tool calls (final answer)
 	if len(resp.ToolCalls) == 0 {
+		contentPreview := resp.Content
+		if len(contentPreview) > 200 {
+			contentPreview = contentPreview[:200]
+		}
+		thinkingPreview := resp.Thinking
+		if len(thinkingPreview) > 200 {
+			thinkingPreview = thinkingPreview[:200]
+		}
+		slog.Warn("pipeline observe: capturing final response",
+			"run_id", state.RunID,
+			"phase", resp.Phase,
+			"finish_reason", resp.FinishReason,
+			"content_len", len(resp.Content),
+			"content_preview", contentPreview,
+			"thinking_len", len(resp.Thinking),
+			"thinking_preview", thinkingPreview,
+			"tool_calls", len(resp.ToolCalls),
+		)
 		state.Observe.FinalContent = resp.Content
 		state.Observe.FinalThinking = resp.Thinking
 	}
 
-	return nil
-}
+

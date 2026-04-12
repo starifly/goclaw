@@ -41,6 +41,25 @@ func (s *FinalizeStage) Execute(ctx context.Context, state *RunState) error {
 
 	// 2b. Fallback for empty content (matching v2: channels need non-empty content to deliver).
 	if state.Observe.FinalContent == "" && !isSilent {
+		thinkingPreview := state.Observe.FinalThinking
+		if len(thinkingPreview) > 200 {
+			thinkingPreview = thinkingPreview[:200]
+		}
+		lastBlockPreview := state.Observe.LastBlockReply
+		if len(lastBlockPreview) > 200 {
+			lastBlockPreview = lastBlockPreview[:200]
+		}
+		slog.Warn("pipeline finalize: empty final content fallback",
+			"run_id", state.RunID,
+			"session_key", state.Input.SessionKey,
+			"thinking_len", len(state.Observe.FinalThinking),
+			"thinking_preview", thinkingPreview,
+			"block_replies", state.Observe.BlockReplies,
+			"last_block_reply", lastBlockPreview,
+			"media_count", len(state.Tool.MediaResults),
+			"tool_calls", state.Tool.TotalToolCalls,
+			"is_silent", isSilent,
+		)
 		state.Observe.FinalContent = "..."
 	}
 
