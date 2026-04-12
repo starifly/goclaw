@@ -62,5 +62,6 @@ func (s *ObserveStage) Execute(_ context.Context, state *RunState) error {
 		state.Observe.FinalContent = resp.Content
 		state.Observe.FinalThinking = resp.Thinking
 	}
-}
 
+	return nil
+}
