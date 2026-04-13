@@ -28,6 +28,32 @@ func (p *OpenAIProvider) Chat(ctx context.Context, req ChatRequest) (*ChatRespon
 		}
 	}
 
+  if err == nil && emptyChatResponse(resp) {
+		slog.Warn("openai: empty non-stream response, retrying via stream",
+			"provider", p.name,
+			"model", model,
+			"finish_reason", resp.FinishReason,
+		)
+		streamResp, streamErr := p.ChatStream(ctx, req, nil)
+		if streamErr != nil {
+			slog.Warn("openai: stream fallback failed",
+				"provider", p.name,
+				"model", model,
+				"error", streamErr,
+			)
+		} else {
+			resp = streamResp
+			slog.Info("openai: stream fallback recovered empty non-stream response",
+				"provider", p.name,
+				"model", model,
+				"content_len", len(resp.Content),
+				"thinking_len", len(resp.Thinking),
+				"tool_calls", len(resp.ToolCalls),
+				"finish_reason", resp.FinishReason,
+			)
+		}
+	}
+
 	// Drop user-visible reasoning for models flagged as leakers (e.g. Kimi,
 	// DeepSeek-Reasoner). Usage.ThinkingTokens is preserved so billing stays
 	// correct (Phase 1 depends on this).
@@ -193,6 +219,10 @@ func (p *OpenAIProvider) ChatStream(ctx context.Context, req ChatRequest, onChun
 	}
 
 	return result, nil
+}
+
+func emptyChatResponse(resp *ChatResponse) bool {
+	return resp != nil && resp.Content == "" && resp.Thinking == "" && len(resp.ToolCalls) == 0 && resp.FinishReason == "stop"
 }
 
 const maxToolCallIDLen = 40
