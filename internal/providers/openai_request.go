@@ -54,9 +54,14 @@ func (p *OpenAIProvider) buildRequestBody(model string, req ChatRequest, stream 
 			"role": role,
 		}
 
-		// Echo reasoning_content only for APIs/models that accept it on assistant history.
-		// Together Qwen and many OpenAI-compat gateways reject unknown message fields → HTTP 400.
-		if m.Thinking != "" && m.Role == "assistant" && openAIWireAssistantReasoningContent(model) {
+		// Echo reasoning_content when thinking is enabled for this request.
+		// OptThinkingLevel is set by makeCallLLM only for reasoning-capable models,
+		// so this adapts dynamically without a hardcoded model-name allowlist.
+		thinkingEnabled := false
+		if level, ok := req.Options[OptThinkingLevel].(string); ok && level != "" && level != "off" {
+			thinkingEnabled = true
+		}
+		if m.Thinking != "" && m.Role == "assistant" && thinkingEnabled {
 			msg["reasoning_content"] = m.Thinking
 		}
 
@@ -329,21 +334,4 @@ func buildToolsPayload(schemaProvider string, tools []ToolDefinition) []map[stri
 		}
 	}
 	return out
-}
-
-// openAIWireAssistantReasoningContent is true when assistant message objects may include
-// "reasoning_content" (thinking replay). Narrow allowlist — most OpenAI-compat hosts reject it.
-func openAIWireAssistantReasoningContent(model string) bool {
-	if openAIModelSupportsReasoningEffort(model) {
-		return true
-	}
-	fam := strings.ToLower(modelFamily(model))
-	full := strings.ToLower(model)
-	if strings.Contains(fam, "deepseek") || strings.Contains(full, "deepseek") {
-		return true
-	}
-	if strings.Contains(fam, "kimi") || strings.Contains(full, "kimi") {
-		return true
-	}
-	return false
 }

@@ -331,6 +331,7 @@ func TestBuildRequestBody_DeepSeekKeepsReasoningContent(t *testing.T) {
 			{Role: "assistant", Content: "result", Thinking: "step by step"},
 			{Role: "user", Content: "next"},
 		},
+		Options: map[string]any{OptThinkingLevel: "medium"},
 	}
 
 	body := p.buildRequestBody("deepseek-r1", req, false)
@@ -352,6 +353,7 @@ func TestBuildRequestBody_KimiKeepsReasoningContent(t *testing.T) {
 			{Role: "assistant", Content: "ok", Thinking: "reasoning"},
 			{Role: "user", Content: "next"},
 		},
+		Options: map[string]any{OptThinkingLevel: "medium"},
 	}
 
 	body := p.buildRequestBody("kimi-k2", req, false)

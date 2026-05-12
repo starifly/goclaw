@@ -194,6 +194,7 @@ func TestBuildRequestBody_NoReasoningAliasInOutput(t *testing.T) {
 			},
 			{Role: "user", Content: "continue"},
 		},
+		Options: map[string]any{OptThinkingLevel: "medium"},
 	}
 
 	body := p.buildRequestBody("deepseek-reasoner", req, false)
