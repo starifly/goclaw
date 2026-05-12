@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"time"
+	"log/slog"
 
 	"github.com/google/uuid"
 
@@ -288,9 +289,28 @@ func (l *Loop) makeCallLLM(req *RunRequest, emitRun func(AgentEvent)) func(ctx c
 			})
 		} else {
 			resp, err = provider.Chat(ctx, chatReq)
+			// Stream fallback: some models/providers only produce content via streaming.
+			// When non-streaming returns an empty response (no content, no thinking,
+			// no tool calls, finish_reason=stop), retry as streaming to recover output.
+			if err == nil && resp != nil && resp.Content == "" && resp.Thinking == "" &&
+				len(resp.ToolCalls) == 0 && resp.FinishReason == "stop" {
+				slog.Debug("non-streaming returned empty response, falling back to streaming",
+					"model", model, "provider", provider.Name())
+				// Pass nil onChunk — content accumulates silently in streamResp,
+				// and the post-hoc emission block below handles it as a single event.
+				if streamResp, streamErr := provider.ChatStream(ctx, chatReq, nil); 
+					streamErr == nil && streamResp != nil {
+					resp = streamResp
+				} else if streamErr != nil {
+					slog.Warn("streaming fallback also failed, returning empty response",
+						"model", model, "provider", provider.Name(), "error", streamErr)
+				}
+			}
 		}
 
 		// Non-streaming: emit content events matching v2 behavior (channels need these).
+		// Also handles streaming fallback results since ChatStream was called with
+		// nil onChunk — content arrives accumulated, not as real-time chunks.
 		if !req.Stream && err == nil && resp != nil {
 			if resp.Thinking != "" {
 				emitRun(AgentEvent{
