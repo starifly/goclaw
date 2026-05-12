@@ -51,7 +51,7 @@ func TestFormatAgentError_Timeout(t *testing.T) {
 func TestFormatAgentError_Generic(t *testing.T) {
 	t.Parallel()
 	result := FormatAgentError("some unknown error")
-	if !strings.Contains(result, "Something went wrong") {
+	if !strings.Contains(result, "❌ Error:") {
 		t.Errorf("unexpected generic message: %s", result)
 	}
 }

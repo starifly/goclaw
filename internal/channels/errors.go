@@ -40,6 +40,6 @@ func FormatAgentError(errStr string) string {
 		return "🔄 Service is busy. Please try again in a moment."
 	}
 
-	// Generic fallback (don't expose internal error details)
-	return "❌ Something went wrong. Please try again."
+	// Generic fallback — include the actual error so users know what happened
+	return "❌ Error: " + errStr
 }
