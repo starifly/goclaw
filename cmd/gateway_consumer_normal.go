@@ -443,15 +443,9 @@ func processNormalMessage(
 				return
 			}
 			slog.Error("inbound: agent run failed", "error", outcome.Err, "channel", channel)
-			// Suppress technical error text on public-facing channels (FB, Telegram, etc.)
-			// Empty Content still triggers placeholder/typing cleanup downstream.
+			// Format error for external channels — FormatAgentError in channels/errors.go
+			// handles sanitization and user-friendly messaging, so no need to suppress.
 			errContent := formatAgentError(outcome.Err)
-			if deps.ChannelMgr != nil {
-				if ct := deps.ChannelMgr.ChannelTypeForName(channel); isExternalChannel(ct) {
-					slog.Info("inbound: suppressed error for external channel", "channel", channel, "type", ct)
-					errContent = ""
-				}
-			}
 			deps.MsgBus.PublishOutbound(bus.OutboundMessage{
 				Channel:  channel,
 				ChatID:   chatID,

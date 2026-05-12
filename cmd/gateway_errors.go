@@ -56,9 +56,10 @@ func formatAgentError(err error) string {
 		return "⚠️ Model configuration error. Please check your config and restart."
 	}
 
-	// 9. Generic — log the full error but show only a safe message to user
+	// 9. Generic — surface actual error since FormatAgentError (channels/errors.go)
+	// handles sanitization for external channels.
 	slog.Warn("unclassified agent error", "error", raw)
-	return "⚠️ Sorry, something went wrong processing your message. Please try again."
+	return "⚠️ Error: " + raw
 }
 
 // isContextOverflowError checks for context window/size overflow patterns.
