@@ -26,14 +26,14 @@ var telegramSupportedEmojis = map[string]bool{
 	"😁": true, "🤔": true, "🤯": true, "😱": true, "🤬": true, "😢": true,
 	"🎉": true, "🤩": true, "🤮": true, "💩": true, "🙏": true, "👌": true,
 	"🕊": true, "🤡": true, "🥱": true, "🥴": true, "😍": true, "🐳": true,
-	"❤\u200d🔥": true, "🌚": true, "🌭": true, "💯": true, "🤣": true, "⚡": true,
+	"❤\u200d🔥": true, "🌚": true, "🌏": true, "🌭": true, "💯": true, "🤣": true, "⚡": true,
 	"🍌": true, "🏆": true, "💔": true, "🤨": true, "😐": true, "🍓": true,
 	"🍾": true, "💋": true, "🖕": true, "😈": true, "😴": true, "😭": true,
 	"🤓": true, "👻": true, "👨\u200d💻": true, "👀": true, "🎃": true, "🙈": true,
 	"😇": true, "😨": true, "🤝": true, "✍": true, "🤗": true, "🫡": true,
 	"🎅": true, "🎄": true, "☃": true, "💅": true, "🤪": true, "🗿": true,
 	"🆒": true, "💘": true, "🙉": true, "🦄": true, "😘": true, "💊": true,
-	"🙊": true, "😎": true, "👾": true, "🤷\u200d♂": true, "🤷": true,
+	"🙊": true, "😎": true, "👾": true, "🛠": true, "🤷\u200d♂": true, "🤷": true,
 	"🤷\u200d♀": true, "😡": true,
 }
 
@@ -43,13 +43,13 @@ var telegramSupportedEmojis = map[string]bool{
 var statusReactionVariants = map[string][]string{
 	"queued":    {"👀", "🙏", "🤝"},
 	"thinking":  {"🤔", "🤓", "👀"},
-	"tool":      {"✍", "⚡", "🔥"},
+	"tool":      {"🛠", "✍", "⚡"},
 	"coding":    {"👨\u200d💻", "✍", "🤓"},
-	"web":       {"⚡", "🌚", "🔥"},
+	"web":       {"🌏", "⚡", "👀"},
 	"done":      {"👍", "🎉", "💯"},
 	"error":     {"💔", "😱", "😨"},
-	"stallSoft": {"🥱", "😴", "😐"},
-	"stallHard": {"😨", "🤯", "😱"},
+	"stallSoft": {"😐", "🥱", "😴"},
+	"stallHard": {"🤷", "😨", "🤯"},
 }
 
 // ReactionLegend returns the primary emoji for each status, used by the /reactions command.
@@ -60,13 +60,13 @@ var reactionLegend = []struct {
 }{
 	{"queued", "👀", "Queued — waiting to process"},
 	{"thinking", "🤔", "Thinking — processing your request"},
-	{"tool", "✍", "Tool — executing a tool"},
+	{"tool", "🛠", "Tool — executing a tool"},
 	{"coding", "👨\u200d💻", "Coding — running code"},
-	{"web", "⚡", "Web — browsing / API call"},
+	{"web", "🌏", "Web — browsing / API call"},
 	{"done", "👍", "Done — completed"},
 	{"error", "💔", "Error — something went wrong"},
-	{"stallSoft", "🥱", "Stall — no activity for 10s"},
-	{"stallHard", "😨", "Stall — no activity for 30s"},
+	{"stallSoft", "😐", "Still running — processing >10s"},
+	{"stallHard", "🤷", "Still running — processing >30s"},
 }
 
 // resolveReactionEmoji picks the first supported emoji for a given status.
